@@ -137,9 +137,13 @@ class MSP_Admin {
         $open_issues = $this->state->get_open_issues();
         $fixed_log   = $this->state->get_fixed_log();
 
+        // Critical/Warning counts must come from the same deduplicated open-issues
+        // state shown below, not from the raw historical log table -- otherwise a
+        // category re-scanned multiple times counts the same still-open issue
+        // more than once, and the stat card disagrees with the table underneath it.
         $total_scans    = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->db_table_name}");
-        $critical_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->db_table_name} WHERE result_level = 'CRITICAL'");
-        $warning_count  = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->db_table_name} WHERE result_level = 'WARNING'");
+        $critical_count = count( array_filter( $open_issues, function ( $issue ) { return 'CRITICAL' === $issue['level']; } ) );
+        $warning_count  = count( array_filter( $open_issues, function ( $issue ) { return 'WARNING' === $issue['level']; } ) );
 
         ?>
         <div class="security-pro-wrap">
