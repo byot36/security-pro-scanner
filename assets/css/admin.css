@@ -1,0 +1,42 @@
+:root {
+    --sp-bg: #020617; --sp-surface: #0f172a; --sp-surface-hover: #162032; --sp-border: #1e293b;
+    --sp-text: #f8fafc; --sp-text-secondary: #94a3b8; --sp-accent: #06b6d4; --sp-accent-glow: rgba(6,182,212,0.15);
+    --sp-critical: #f43f5e; --sp-high: #f97316; --sp-medium: #eab308; --sp-low: #3b82f6; --sp-info: #64748b; --sp-success: #10b981;
+}
+.security-pro-wrap { padding: 24px; background: var(--sp-bg); border: 1px solid var(--sp-border); margin-top: 20px; max-width: 1150px; border-radius: 12px; color: var(--sp-text); }
+.sp-card { background: var(--sp-surface); border: 1px solid var(--sp-border); padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 10px 40px -10px rgba(0,0,0,.45); }
+.sp-card h3 { color: var(--sp-text); margin-top: 0; }
+.sp-card p { color: var(--sp-text-secondary); }
+.sp-header { font-size: 24px; margin-bottom: 0; color: var(--sp-text); display: flex; align-items: center; gap: 10px; }
+.sp-header .dashicons { color: var(--sp-accent); }
+.sp-subtitle { color: var(--sp-text-secondary); margin: 4px 0 20px; }
+.sp-btn-primary { background: var(--sp-accent); color: #000; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block; border: none; cursor: pointer; font-weight: 600; box-shadow: 0 0 20px var(--sp-accent-glow); }
+.sp-btn-primary:hover { filter: brightness(1.15); color: #000; }
+.sp-status-ok { color: var(--sp-success); font-weight: bold; }
+.sp-status-warning { color: var(--sp-medium); font-weight: bold; }
+.sp-status-info { color: var(--sp-low); font-weight: bold; }
+.sp-status-critical { color: var(--sp-critical); font-weight: bold; }
+table.sp-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: var(--sp-text); }
+table.sp-table th, table.sp-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--sp-border); }
+table.sp-table th { background: var(--sp-surface-hover); font-weight: 600; color: var(--sp-text-secondary); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+table.sp-table tbody tr:hover { background: var(--sp-surface-hover); }
+.sp-nav-tabs.nav-tab-wrapper { border-bottom-color: var(--sp-border); margin: 15px 0 25px; }
+.sp-nav-tabs .nav-tab { background: var(--sp-surface); border-color: var(--sp-border); color: var(--sp-text-secondary); }
+.sp-nav-tabs .nav-tab-active { background: var(--sp-surface-hover); color: var(--sp-accent); border-color: var(--sp-border); }
+.sp-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border: 1px solid transparent; }
+.sp-badge-critical { background: rgba(244,63,94,.12); color: var(--sp-critical); border-color: rgba(244,63,94,.25); }
+.sp-badge-high { background: rgba(249,115,22,.12); color: var(--sp-high); border-color: rgba(249,115,22,.25); }
+.sp-badge-medium, .sp-badge-warning { background: rgba(234,179,8,.12); color: var(--sp-medium); border-color: rgba(234,179,8,.25); }
+.sp-badge-low { background: rgba(59,130,246,.12); color: var(--sp-low); border-color: rgba(59,130,246,.25); }
+.sp-badge-info, .sp-badge-ok { background: rgba(100,116,139,.12); color: var(--sp-info); border-color: rgba(100,116,139,.25); }
+.sp-badge-ok { background: rgba(16,185,129,.12); color: var(--sp-success); border-color: rgba(16,185,129,.25); }
+.sp-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.sp-stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--sp-text); }
+.sp-stat-label { font-size: 13px; color: var(--sp-text-secondary); font-weight: 500; margin-top: 4px; }
+.security-pro-wrap input[type=email], .security-pro-wrap input[type=text], .security-pro-wrap input[type=number], .security-pro-wrap select {
+    background: var(--sp-bg); border: 1px solid var(--sp-border); color: var(--sp-text); padding: 8px 10px; border-radius: 6px;
+}
+.security-pro-wrap .description { color: var(--sp-text-secondary); }
+.security-pro-wrap .form-table th { color: var(--sp-text); }
+.sp-progress-track { background: #eee; height: 10px; border-radius: 5px; overflow: hidden; }
+.sp-progress-bar { background: var(--sp-accent); width: 0%; height: 100%; transition: width 0.3s; }
