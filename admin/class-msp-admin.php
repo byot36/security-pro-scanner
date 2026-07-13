@@ -4,8 +4,8 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Meniul din admin și cele 4 pagini (Dashboard, Manual Scan, Scan Logs, Settings).
- * Nu conține logică de scanare — doar afișare și acțiuni de formular.
+ * The admin menu and the 4 pages (Dashboard, Manual Scan, Scan Logs, Settings).
+ * Contains no scanning logic — only rendering and form actions.
  */
 class MSP_Admin {
 
@@ -22,7 +22,7 @@ class MSP_Admin {
     }
 
     /**
-     * MENIU: Adaugă opțiunea în sidebar-ul WordPress
+     * MENU: Adds the option in the WordPress sidebar
      */
     public function add_admin_menu() {
         $dashboard_hook = add_menu_page(
@@ -75,7 +75,7 @@ class MSP_Admin {
     }
 
     /**
-     * Încarcă CSS/JS doar pe paginile acestui plugin, nu în tot admin-ul.
+     * Loads CSS/JS only on this plugin's pages, not across the whole admin area.
      */
     public function enqueue_admin_assets($hook_suffix) {
         if (empty($this->plugin_pages) || !in_array($hook_suffix, $this->plugin_pages, true)) {
@@ -105,7 +105,7 @@ class MSP_Admin {
     }
 
     /**
-     * NAVIGARE COMUNĂ: tab-uri consistente pe toate paginile plugin-ului
+     * SHARED NAVIGATION: consistent tabs across all plugin pages
      */
     private function render_nav_tabs($active) {
         $tabs = array(
@@ -128,12 +128,12 @@ class MSP_Admin {
     }
 
     /**
-     * PAGINA PRINCIPALĂ (DASHBOARD)
+     * MAIN PAGE (DASHBOARD)
      */
     public function render_dashboard() {
         global $wpdb;
 
-        // Starea reală curentă — nu istoric acumulat; ce a fost reparat dispare de aici.
+        // The real current state — not accumulated history; anything fixed disappears from here.
         $open_issues = $this->state->get_open_issues();
         $fixed_log   = $this->state->get_fixed_log();
 
@@ -150,55 +150,55 @@ class MSP_Admin {
             <div class="sp-stat-grid" style="margin-bottom: 24px;">
                 <div class="sp-card card-hover">
                     <div class="sp-stat-value"><?php echo esc_html($total_scans); ?></div>
-                    <div class="sp-stat-label">Intrări în log</div>
+                    <div class="sp-stat-label">Log entries</div>
                 </div>
                 <div class="sp-card card-hover">
                     <div class="sp-stat-value" style="color: var(--sp-critical);"><?php echo esc_html($critical_count); ?></div>
-                    <div class="sp-stat-label">Probleme Critice</div>
+                    <div class="sp-stat-label">Critical Issues</div>
                 </div>
                 <div class="sp-card card-hover">
                     <div class="sp-stat-value" style="color: var(--sp-medium);"><?php echo esc_html($warning_count); ?></div>
-                    <div class="sp-stat-label">Avertismente</div>
+                    <div class="sp-stat-label">Warnings</div>
                 </div>
                 <div class="sp-card card-hover">
                     <div class="sp-stat-value" style="color: var(--sp-accent);">Pro v1.0</div>
-                    <div class="sp-stat-label">Versiune plugin</div>
+                    <div class="sp-stat-label">Plugin version</div>
                 </div>
             </div>
 
             <div style="display: flex; gap: 20px;">
                 <div class="sp-card" style="flex: 1;">
-                    <h3>Stare Sistem</h3>
+                    <h3>System Status</h3>
                     <?php if (count($open_issues) > 0): ?>
-                        <p class="sp-status-critical">⚠️ Atenție! Există <?php echo count($open_issues); ?> probleme deschise.</p>
+                        <p class="sp-status-critical">⚠️ Attention! There are <?php echo count($open_issues); ?> open issues.</p>
                     <?php else: ?>
-                        <p class="sp-status-ok">✅ Sistemul pare securizat.</p>
+                        <p class="sp-status-ok">✅ The system appears secure.</p>
                     <?php endif; ?>
                 </div>
 
                 <div class="sp-card" style="flex: 1;">
-                    <h3>Scanare rapidă</h3>
-                    <p>Rulează un audit complet acum, fără să aștepți programarea zilnică.</p>
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=my-manual-scan')); ?>" class="sp-btn-primary">Lansează Scanare Rapidă</a>
+                    <h3>Quick Scan</h3>
+                    <p>Run a full audit now, without waiting for the daily scheduled scan.</p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=my-manual-scan')); ?>" class="sp-btn-primary">Launch Quick Scan</a>
                 </div>
             </div>
 
             <?php if (!empty($open_issues)): ?>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px;">
-                    <h2 style="margin:0;">Probleme Deschise</h2>
+                    <h2 style="margin:0;">Open Issues</h2>
                     <button id="sp-fix-headers-btn" class="sp-btn-primary"
-                        onclick="return confirm('Se vor adăuga header-ele HTTP lipsă direct în fișierul .htaccess. Continui?');">
-                        🔧 Repară Automat Header-ele
+                        onclick="return confirm('This will add the missing HTTP headers directly to the .htaccess file. Continue?');">
+                        🔧 Auto-Fix Headers
                     </button>
                 </div>
-                <p class="sp-subtitle" style="margin-top:4px;">Lista reflectă starea reală, la ultima verificare — ce a fost reparat nu mai apare aici.</p>
+                <p class="sp-subtitle" style="margin-top:4px;">The list reflects the actual state as of the last check — anything fixed no longer appears here.</p>
                 <div id="sp-fix-headers-result" style="margin:12px 0;"></div>
                 <table class="sp-table">
                     <thead>
                         <tr>
-                            <th>Categorie</th>
-                            <th>Nivel</th>
-                            <th>Mesaj</th>
+                            <th>Category</th>
+                            <th>Level</th>
+                            <th>Message</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -214,19 +214,19 @@ class MSP_Admin {
             <?php endif; ?>
 
             <?php if (!empty($fixed_log)): ?>
-                <h2 style="margin-top: 30px;">Istoric Reparații</h2>
+                <h2 style="margin-top: 30px;">Fix History</h2>
                 <table class="sp-table">
                     <thead>
                         <tr>
-                            <th>Data</th>
-                            <th>Ce a fost reparat</th>
+                            <th>Date</th>
+                            <th>What was fixed</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($fixed_log as $entry): ?>
                             <tr>
                                 <td><?php echo esc_html($entry['time']); ?></td>
-                                <td><span class="sp-badge sp-badge-ok">Reparat</span> <?php echo esc_html($entry['label']); ?></td>
+                                <td><span class="sp-badge sp-badge-ok">Fixed</span> <?php echo esc_html($entry['label']); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -237,7 +237,7 @@ class MSP_Admin {
     }
 
     /**
-     * PAGINA SCANARE MANUALĂ (AJAX)
+     * MANUAL SCAN PAGE (AJAX)
      */
     public function render_manual_scan() {
         ?>
@@ -247,29 +247,29 @@ class MSP_Admin {
             <?php $this->render_nav_tabs('my-manual-scan'); ?>
 
             <div class="sp-card">
-                <p>Selectează tipul de scanare:</p>
+                <p>Select the scan type:</p>
                 <select id="sp-scan-type" style="padding: 10px; width: 340px;">
-                    <option value="full">Scanare Completă (toate modulele)</option>
-                    <option value="backdoors">Doar Backdoors &amp; Malware</option>
-                    <option value="perms">Doar Permisii Fișiere Critice</option>
-                    <option value="headers">Doar Header-e HTTP de Securitate</option>
-                    <option value="ports">Doar Porturi Expuse</option>
-                    <option value="sqli">Doar Risc SQL Injection (analiză statică)</option>
-                    <option value="advanced">SQLi Dinamic + XSS (testează propriul site, mai lent)</option>
+                    <option value="full">Full Scan (all modules)</option>
+                    <option value="backdoors">Backdoors &amp; Malware Only</option>
+                    <option value="perms">Critical File Permissions Only</option>
+                    <option value="headers">HTTP Security Headers Only</option>
+                    <option value="ports">Exposed Ports Only</option>
+                    <option value="sqli">SQL Injection Risk Only (static analysis)</option>
+                    <option value="advanced">Dynamic SQLi + XSS (tests your own site, slower)</option>
                 </select>
                 <p class="description" style="margin-top:8px; max-width:600px;">
-                    Modul "SQLi Dinamic + XSS" trimite câteva request-uri de test către propriul site
-                    (home_url), niciodată către un URL extern — nu poate fi folosit ca scanner împotriva altor site-uri.
+                    The "Dynamic SQLi + XSS" module sends a handful of test requests to your own site
+                    (home_url), never to an external URL — it cannot be used as a scanner against other sites.
                 </p>
                 <button id="sp-start-scan" class="sp-btn-primary" style="margin-left: 10px;">Start Scan</button>
             </div>
 
             <div id="sp-progress-area" style="display:none; margin-top: 20px;">
-                <h3>În curs de analiză...</h3>
+                <h3>Analysis in progress...</h3>
                 <div class="sp-progress-track">
                     <div id="sp-bar" class="sp-progress-bar"></div>
                 </div>
-                <p id="sp-status-text" style="margin-top: 5px;">Initializare...</p>
+                <p id="sp-status-text" style="margin-top: 5px;">Initializing...</p>
             </div>
 
             <div id="sp-results-area" style="margin-top: 20px;"></div>
@@ -278,7 +278,7 @@ class MSP_Admin {
     }
 
     /**
-     * PAGINA LOGURI (ISTORIC)
+     * LOGS PAGE (HISTORY)
      */
     public function render_logs() {
         global $wpdb;
@@ -294,10 +294,10 @@ class MSP_Admin {
                 <table class="sp-table">
                     <thead>
                         <tr>
-                            <th>Data</th>
-                            <th>Tip</th>
-                            <th>Nivel</th>
-                            <th>Mesaj</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Level</th>
+                            <th>Message</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -312,14 +312,14 @@ class MSP_Admin {
                     </tbody>
                 </table>
             <?php else: ?>
-                <div class="sp-card"><p>Niciun log găsit încă.</p></div>
+                <div class="sp-card"><p>No logs found yet.</p></div>
             <?php endif; ?>
         </div>
         <?php
     }
 
     /**
-     * PAGINA SETĂRI
+     * SETTINGS PAGE
      */
     public function render_settings() {
         if (isset($_POST['sp_save_settings']) && check_admin_referer('my_security_pro_settings')) {
@@ -327,7 +327,7 @@ class MSP_Admin {
                 'notify_email' => sanitize_email($_POST['sp_notify_email'] ?? ''),
                 'notify_on'    => !empty($_POST['sp_notify_on']),
             ));
-            echo '<div class="notice notice-success is-dismissible"><p>Setări salvate.</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
         }
 
         $settings = wp_parse_args(get_option('my_security_pro_settings', array()), array(

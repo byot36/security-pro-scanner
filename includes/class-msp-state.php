@@ -4,10 +4,10 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Ține starea reală, curentă, a problemelor deschise și a reparațiilor
- * confirmate. Spre deosebire de tabela de log (istoric brut), aici fiecare
- * categorie își suprascrie complet rezultatele la fiecare scanare — ce a
- * fost reparat între timp dispare automat, nu se acumulează la infinit.
+ * Holds the real, current state of open issues and confirmed fixes.
+ * Unlike the log table (raw history), here each category completely
+ * overwrites its results on every scan — anything fixed in the meantime
+ * disappears automatically instead of accumulating indefinitely.
  */
 class MSP_State {
 

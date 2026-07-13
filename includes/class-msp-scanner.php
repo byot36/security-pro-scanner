@@ -4,10 +4,10 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Toată logica de detectare: header-e HTTP, porturi expuse, risc SQLi
- * (static și dinamic pe propriul site), plus reparare automată a
- * header-elor lipsă. Nu atinge baza de date direct — doar întoarce
- * findings brute, pe care apelantul le loghează.
+ * All the detection logic: HTTP headers, exposed ports, SQLi risk
+ * (static and dynamic on your own site), plus automatic repair of
+ * missing headers. Does not touch the database directly — only returns
+ * raw findings, which the caller logs.
  */
 class MSP_Scanner {
 
@@ -19,8 +19,8 @@ class MSP_Scanner {
     }
 
     /**
-     * Definiții header-e: numele HTTP real + valoarea recomandată, folosite
-     * atât pentru detectare cât și pentru generarea fix-ului automat în .htaccess.
+     * Header definitions: the real HTTP name + recommended value, used
+     * both for detection and for generating the automatic fix in .htaccess.
      */
     public function header_definitions(): array {
         return array(
@@ -28,38 +28,38 @@ class MSP_Scanner {
                 'name'  => 'X-Frame-Options',
                 'value' => 'SAMEORIGIN',
                 'level' => 'WARNING',
-                'msg'   => 'Lipsește X-Frame-Options — site vulnerabil la Clickjacking.',
+                'msg'   => 'Missing X-Frame-Options — site vulnerable to Clickjacking.',
             ),
             'content-security-policy' => array(
                 'name'  => 'Content-Security-Policy',
                 'value' => "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
                 'level' => 'WARNING',
-                'msg'   => 'Lipsește Content-Security-Policy — crește riscul de XSS.',
+                'msg'   => 'Missing Content-Security-Policy — increases XSS risk.',
             ),
             'x-content-type-options' => array(
                 'name'  => 'X-Content-Type-Options',
                 'value' => 'nosniff',
                 'level' => 'INFO',
-                'msg'   => 'Lipsește X-Content-Type-Options — browserul poate ghici tipul MIME greșit.',
+                'msg'   => 'Missing X-Content-Type-Options — the browser may guess the wrong MIME type.',
             ),
             'referrer-policy' => array(
                 'name'  => 'Referrer-Policy',
                 'value' => 'strict-origin-when-cross-origin',
                 'level' => 'INFO',
-                'msg'   => 'Lipsește Referrer-Policy — se poate scurge URL-ul complet către site-uri externe.',
+                'msg'   => 'Missing Referrer-Policy — the full URL may leak to external sites.',
             ),
             'strict-transport-security' => array(
                 'name'  => 'Strict-Transport-Security',
                 'value' => 'max-age=31536000; includeSubDomains',
                 'level' => 'WARNING',
-                'msg'   => 'Lipsește Strict-Transport-Security (HSTS) pe un site cu HTTPS activ.',
+                'msg'   => 'Missing Strict-Transport-Security (HSTS) on a site with HTTPS enabled.',
                 'ssl_only' => true,
             ),
         );
     }
 
     /**
-     * MODUL: Header-e HTTP de securitate lipsă (verifică propriul site, via wp_remote_get)
+     * MODULE: Missing HTTP security headers (checks your own site, via wp_remote_get)
      */
     public function check_security_headers(): array {
         $findings = array();
@@ -88,14 +88,14 @@ class MSP_Scanner {
     }
 
     /**
-     * REPARARE AUTOMATĂ: scrie header-ele HTTP lipsă direct în .htaccess,
-     * folosind insert_with_markers() — funcția nativă WordPress care
-     * adaugă/actualizează un bloc delimitat, fără să atingă restul
-     * regulilor din fișier (ex. regulile de permalink-uri).
+     * AUTOMATIC FIX: writes the missing HTTP headers directly into .htaccess,
+     * using insert_with_markers() — the native WordPress function that
+     * adds/updates a delimited block without touching the rest of the
+     * rules in the file (e.g. permalink rules).
      */
     public function apply_header_fixes(): array {
         if (!current_user_can('manage_options')) {
-            return array('success' => false, 'message' => 'Permisiuni insuficiente.', 'fixed' => array());
+            return array('success' => false, 'message' => 'Insufficient permissions.', 'fixed' => array());
         }
 
         if (!function_exists('insert_with_markers')) {
@@ -107,14 +107,14 @@ class MSP_Scanner {
         if (!is_writable(ABSPATH) && !(file_exists($htaccess_path) && is_writable($htaccess_path))) {
             return array(
                 'success' => false,
-                'message' => 'Fișierul .htaccess nu este accesibil pentru scriere — aplică manual regulile de mai jos.',
+                'message' => 'The .htaccess file is not writable — apply the rules below manually.',
                 'fixed'   => array(),
             );
         }
 
         $missing = $this->check_security_headers();
         if (empty($missing)) {
-            return array('success' => true, 'message' => 'Niciun header lipsă — nimic de reparat.', 'fixed' => array());
+            return array('success' => true, 'message' => 'No missing headers — nothing to fix.', 'fixed' => array());
         }
 
         $defs  = $this->header_definitions();
@@ -134,7 +134,7 @@ class MSP_Scanner {
         $lines[] = '</IfModule>';
 
         if (empty($fixed)) {
-            return array('success' => true, 'message' => 'Niciun header cunoscut de reparat.', 'fixed' => array());
+            return array('success' => true, 'message' => 'No known header to fix.', 'fixed' => array());
         }
 
         $result = insert_with_markers($htaccess_path, 'My Security Pro Scanner - Security Headers', $lines);
@@ -142,13 +142,13 @@ class MSP_Scanner {
         if (!$result) {
             return array(
                 'success' => false,
-                'message' => 'Scrierea în .htaccess a eșuat. Verifică permisiunile fișierului.',
+                'message' => 'Writing to .htaccess failed. Check the file permissions.',
                 'fixed'   => array(),
             );
         }
 
-        // Re-verificăm live, pe o cerere HTTP nouă, ce chiar s-a reparat —
-        // nu presupunem că a mers doar pentru că am scris în fișier.
+        // Re-verify live, with a fresh HTTP request, what actually got fixed —
+        // we don't assume it worked just because we wrote to the file.
         $still_missing = $this->check_security_headers();
         $still_missing_keys = wp_list_pluck($still_missing, 'header_key');
 
@@ -157,7 +157,7 @@ class MSP_Scanner {
             $key = $item['header_key'] ?? null;
             if ($key && !in_array($key, $still_missing_keys, true)) {
                 $confirmed_fixed[] = $defs[$key]['name'] ?? $key;
-                $this->state->log_fix($defs[$key]['name'] . ' adăugat în .htaccess');
+                $this->state->log_fix($defs[$key]['name'] . ' added to .htaccess');
             }
         }
 
@@ -166,14 +166,14 @@ class MSP_Scanner {
         if (empty($confirmed_fixed)) {
             return array(
                 'success' => false,
-                'message' => 'Regulile au fost scrise în .htaccess, dar serverul tot nu trimite header-ele — verifică dacă mod_headers este activ.',
+                'message' => 'The rules were written to .htaccess, but the server still isn\'t sending the headers — check whether mod_headers is enabled.',
                 'fixed'   => array(),
             );
         }
 
-        $message = 'Reparat cu succes: ' . implode(', ', $confirmed_fixed);
+        $message = 'Successfully fixed: ' . implode(', ', $confirmed_fixed);
         if (!empty($still_missing)) {
-            $message .= '. Nerezolvate încă: ' . implode(', ', wp_list_pluck($still_missing, 'msg'));
+            $message .= '. Still unresolved: ' . implode(', ', wp_list_pluck($still_missing, 'msg'));
         }
 
         return array(
@@ -184,7 +184,7 @@ class MSP_Scanner {
     }
 
     /**
-     * MODUL: Verifică porturi expuse pe propriul server (informativ, fără atac)
+     * MODULE: Checks for exposed ports on your own server (informational, no attack)
      */
     public function check_exposed_ports(): array {
         $findings = array();
@@ -207,7 +207,7 @@ class MSP_Scanner {
                 fclose($connection);
                 $findings[] = array(
                     'level' => 'WARNING',
-                    'msg'   => "Portul $port ($service) pare accesibil public — verifică firewall-ul serverului.",
+                    'msg'   => "Port $port ($service) appears publicly accessible — check your server's firewall.",
                 );
             }
         }
@@ -216,15 +216,15 @@ class MSP_Scanner {
     }
 
     /**
-     * MODUL: Analiză statică de cod pentru risc SQL Injection.
-     * Caută interogări $wpdb care concatenează direct input din request,
-     * fără $wpdb->prepare(). Nu trimite niciun request către site — doar
-     * citește fișierele PHP instalate local.
+     * MODULE: Static code analysis for SQL Injection risk.
+     * Looks for $wpdb queries that directly concatenate request input,
+     * without $wpdb->prepare(). Sends no request to the site — only
+     * reads the locally installed PHP files.
      */
     public function check_unsafe_sql_queries(): array {
         $findings = array();
         $scanned  = 0;
-        $max_files = 200; // limită ca să nu blocăm requestul pe site-uri mari
+        $max_files = 200; // limit so we don't block the request on large sites
 
         $directories = array(
             WP_PLUGIN_DIR,
@@ -254,20 +254,20 @@ class MSP_Scanner {
                     continue;
                 }
 
-                // Căutăm apeluri $wpdb->query()/get_results()/get_var() care
-                // concatenează direct $_GET/$_POST/$_REQUEST, fără prepare().
+                // Look for $wpdb->query()/get_results()/get_var() calls that
+                // directly concatenate $_GET/$_POST/$_REQUEST, without prepare().
                 $pattern = '/\$wpdb->(query|get_results|get_var|get_row)\s*\([^)]*\.\s*\$_(GET|POST|REQUEST)/i';
 
                 if (preg_match($pattern, $content)) {
                     $rel_path = str_replace(ABSPATH, '', $file->getPathname());
                     $findings[] = array(
                         'level' => 'CRITICAL',
-                        'msg'   => "Posibil SQL Injection: interogare \$wpdb neprotejată în $rel_path",
+                        'msg'   => "Possible SQL Injection: unprotected \$wpdb query in $rel_path",
                     );
                 }
 
                 if (count($findings) >= 20) {
-                    break 2; // suficiente rezultate pentru un raport util
+                    break 2; // enough results for a useful report
                 }
             }
         }
@@ -276,8 +276,8 @@ class MSP_Scanner {
     }
 
     /**
-     * MODUL AVANSAT: request HTTP cu separare corectă headers/body,
-     * folosit pentru testele de mai jos (self-scan only).
+     * ADVANCED MODULE: HTTP request with proper headers/body separation,
+     * used for the tests below (self-scan only).
      */
     private function fetch_self(string $url_with_query): array {
         $start = microtime(true);
@@ -300,13 +300,13 @@ class MSP_Scanner {
     }
 
     /**
-     * MODUL: SQL Injection dinamic (error-based, boolean-based, time-based blind)
-     * și XSS reflectat — testate EXCLUSIV pe propriul site (home_url), pe un
-     * parametru de test dedicat, nu pe un URL arbitrar din request.
+     * MODULE: Dynamic SQL Injection (error-based, boolean-based, time-based blind)
+     * and reflected XSS — tested EXCLUSIVELY against your own site (home_url), on a
+     * dedicated test parameter, never against an arbitrary URL from the request.
      *
-     * Motiv pentru care nu acceptă un target extern: acest fișier rulează
-     * într-un plugin WordPress; dacă ar accepta URL arbitrar, ar deveni un
-     * scanner public utilizabil de oricine împotriva oricui prin serverul tău.
+     * Why it does not accept an external target: this file runs inside a
+     * WordPress plugin; if it accepted an arbitrary URL, it would become a
+     * public scanner anyone could use against anyone via your server.
      */
     public function check_dynamic_injection(): array {
         $findings = array();
@@ -324,31 +324,31 @@ class MSP_Scanner {
                 if ($resp['body'] !== '' && stripos($resp['body'], $indicator) !== false) {
                     $findings[] = array(
                         'level' => 'CRITICAL',
-                        'msg'   => "Eroare SQL expusă în răspuns (indicator: $indicator) — posibil query neprotejat.",
+                        'msg'   => "SQL error exposed in response (indicator: $indicator) — possible unprotected query.",
                     );
                     break 2;
                 }
             }
         }
 
-        // --- SQLi Time-based blind (doar 1 payload, timeout scurt, ca să nu blocăm requestul) ---
+        // --- SQLi Time-based blind (only 1 payload, short timeout, so we don't block the request) ---
         $time_url = add_query_arg('sp_probe_val', urlencode("1' AND SLEEP(3)-- -"), $base_url);
         $timed = $this->fetch_self($time_url);
         if ($timed['elapsed'] > 2.5) {
             $findings[] = array(
                 'level' => 'WARNING',
-                'msg'   => 'Delay neobișnuit de mare (' . round($timed['elapsed'], 2) . 's) la payload SQLi time-based — verifică manual dacă e relevant.',
+                'msg'   => 'Unusually large delay (' . round($timed['elapsed'], 2) . 's) for the time-based SQLi payload — verify manually whether it\'s relevant.',
             );
         }
 
-        // --- XSS reflectat, pe același parametru de test ---
+        // --- Reflected XSS, on the same test parameter ---
         $xss_payload = "<script>spSelfTestXss()</script>";
         $xss_url = add_query_arg('sp_probe_val', urlencode($xss_payload), $base_url);
         $xss_resp = $this->fetch_self($xss_url);
         if ($xss_resp['body'] !== '' && stripos($xss_resp['body'], $xss_payload) !== false) {
             $findings[] = array(
                 'level' => 'CRITICAL',
-                'msg'   => 'Input-ul din query string este reflectat nesanitizat în pagină — risc XSS.',
+                'msg'   => 'Query string input is reflected unsanitized on the page — XSS risk.',
             );
         }
 

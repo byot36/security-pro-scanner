@@ -40,7 +40,7 @@ class MySecurityProScanner {
     }
 
     /**
-     * ACTIVARE: Creează tabela în baza de date
+     * ACTIVATION: Creates the database table
      */
     public function activate() {
         global $wpdb;
@@ -61,14 +61,14 @@ class MySecurityProScanner {
     }
 
     /**
-     * DEZACTIVARE: Poate fi folosit pentru a salva log-uri finale dacă e nevoie
+     * DEACTIVATION: Can be used to save final logs if needed
      */
     public function deactivate() {
-        // Momentan gol, dar structura este pregătită
+        // Currently empty, but the structure is ready
     }
 
     /**
-     * UNINSTALL: Șterge tabela și opțiunile când utilizatorul dă "Delete" plugin-ului
+     * UNINSTALL: Deletes the table and options when the user clicks "Delete" on the plugin
      */
     public static function uninstall() {
         global $wpdb;
