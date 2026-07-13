@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: My Security Pro Scanner
- * Description: Advanced WordPress Security Scanner with Backdoor Detection, Permissions, and API checks. Includes Dashboard, Logs, and Uninstall.
+ * Description: A security scanner for WordPress that catches what most sites miss — backdoors, risky file permissions, and exposed REST API data — then gives you a clear dashboard and scan history to act on.
  * Version: 1.0 Professional
  * Author: byot
  * Text Domain: my-security-pro
