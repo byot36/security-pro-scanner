@@ -9,7 +9,6 @@
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       my-security-scanner-pro
- * Domain Path:       /languages
  *
  * @package MySecurityProScanner
  */
@@ -99,9 +98,10 @@ class MySecurityProScanner {
         global $wpdb;
         $table_name = $wpdb->prefix . 'my_security_pro_logs';
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off uninstall check on our own custom table, caching would be pointless here.
         $found_table = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
         if ($found_table === $table_name) {
-            $wpdb->query($wpdb->prepare('DROP TABLE %i', $table_name));
+            $wpdb->query($wpdb->prepare('DROP TABLE %i', $table_name)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall routine intentionally drops our own custom table.
         }
 
         delete_option('my_security_pro_settings');

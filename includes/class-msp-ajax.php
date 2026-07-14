@@ -54,12 +54,13 @@ class MSP_Ajax {
         check_ajax_referer('my_security_pro_fix_headers', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions.', 403);
+            wp_send_json_error(__('Insufficient permissions.', 'my-security-scanner-pro'), 403);
         }
 
         $result = $this->scanner->apply_header_fixes();
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
         $wpdb->insert($this->db_table_name, array(
             'scan_type' => 'headers_fix',
             'result_level' => $result['success'] ? 'OK' : 'WARNING',
@@ -79,7 +80,7 @@ class MSP_Ajax {
         check_ajax_referer('my_security_pro_scan', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions.', 403);
+            wp_send_json_error(__('Insufficient permissions.', 'my-security-scanner-pro'), 403);
         }
 
         $scan_type = isset($_POST['scan_type']) ? sanitize_key(wp_unslash($_POST['scan_type'])) : 'full';
@@ -116,11 +117,14 @@ class MSP_Ajax {
                     foreach ($patterns as $pattern) {
                         if (preg_match($pattern, $content)) {
                             $rel_path = str_replace(ABSPATH, '', $file_path);
-                            $backdoor_items[] = array('level' => 'WARNING', 'msg' => "Suspicious code in: $rel_path", 'key' => 'backdoor_' . md5($rel_path));
+                            /* translators: %s: relative path of the file containing the suspicious code */
+                            $backdoor_msg = sprintf(__('Suspicious code in: %s', 'my-security-scanner-pro'), $rel_path);
+                            $backdoor_items[] = array('level' => 'WARNING', 'msg' => $backdoor_msg, 'key' => 'backdoor_' . md5($rel_path));
+                            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                             $wpdb->insert($this->db_table_name, array(
                                 'scan_type' => 'backdoor',
                                 'result_level' => 'WARNING',
-                                'message' => "Suspicious code in $rel_path",
+                                'message' => $backdoor_msg,
                                 'details' => wp_json_encode(array('file' => $rel_path))
                             ));
                             break; // A single alert per file
@@ -143,11 +147,14 @@ class MSP_Ajax {
                     $perms = substr(sprintf('%o', fileperms($path)), -4);
                     // 0644 is standard, 0755 is acceptable for htaccess but not for config
                     if ($file === 'wp-config.php' && octdec($perms) > 0644) {
-                        $perms_items[] = array('level' => 'CRITICAL', 'msg' => "Risky permissions: wp-config.php ($perms)", 'key' => 'perms_wpconfig');
+                        /* translators: %s: current octal file permissions, e.g. 0666 */
+                        $perms_msg = sprintf(__('Risky permissions: wp-config.php (%s)', 'my-security-scanner-pro'), $perms);
+                        $perms_items[] = array('level' => 'CRITICAL', 'msg' => $perms_msg, 'key' => 'perms_wpconfig');
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                         $wpdb->insert($this->db_table_name, array(
                             'scan_type' => 'perms',
                             'result_level' => 'CRITICAL',
-                            'message' => "Bad permissions for wp-config.php",
+                            'message' => __('Bad permissions for wp-config.php', 'my-security-scanner-pro'),
                             'details' => wp_json_encode(array('perms' => $perms))
                         ));
                     }
@@ -164,7 +171,9 @@ class MSP_Ajax {
             if (!is_wp_error($response)) {
                 $body = json_decode(wp_remote_retrieve_body($response), true);
                 if (isset($body['count']) && $body['count'] > 5) {
-                    $api_items[] = array('level' => 'INFO', 'msg' => "API exposed: {$body['count']} visible users.", 'key' => 'api_users_exposed');
+                    /* translators: %d: number of usernames exposed via the REST API */
+                    $api_msg = sprintf(__('API exposed: %d visible users.', 'my-security-scanner-pro'), $body['count']);
+                    $api_items[] = array('level' => 'INFO', 'msg' => $api_msg, 'key' => 'api_users_exposed');
                 }
             }
             $results = array_merge($results, $api_items);
@@ -178,6 +187,7 @@ class MSP_Ajax {
                 $item['key'] = 'header_' . $item['header_key'];
                 $header_items[] = $item;
                 $results[] = $item;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                 $wpdb->insert($this->db_table_name, array(
                     'scan_type' => 'headers',
                     'result_level' => $item['level'],
@@ -195,6 +205,7 @@ class MSP_Ajax {
                 $item['key'] = 'port_' . md5($item['msg']);
                 $port_items[] = $item;
                 $results[] = $item;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                 $wpdb->insert($this->db_table_name, array(
                     'scan_type' => 'ports',
                     'result_level' => $item['level'],
@@ -212,6 +223,7 @@ class MSP_Ajax {
                 $item['key'] = 'sqli_' . md5($item['msg']);
                 $sqli_items[] = $item;
                 $results[] = $item;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                 $wpdb->insert($this->db_table_name, array(
                     'scan_type' => 'sqli_static',
                     'result_level' => $item['level'],
@@ -230,6 +242,7 @@ class MSP_Ajax {
                 $item['key'] = 'dynamic_' . md5($item['msg']);
                 $dynamic_items[] = $item;
                 $results[] = $item;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
                 $wpdb->insert($this->db_table_name, array(
                     'scan_type' => 'dynamic_injection',
                     'result_level' => $item['level'],
@@ -242,10 +255,11 @@ class MSP_Ajax {
 
         // If nothing was found in this specific scan, log a general OK if it's a full scan
         if ($scan_type === 'full' && empty($results)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- writing to our own custom log table.
             $wpdb->insert($this->db_table_name, array(
                 'scan_type' => 'full',
                 'result_level' => 'OK',
-                'message' => "Full scan completed with no critical issues.",
+                'message' => __('Full scan completed with no critical issues.', 'my-security-scanner-pro'),
                 'details' => '{}'
             ));
         }

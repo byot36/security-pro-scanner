@@ -11,8 +11,8 @@ if (!defined('ABSPATH')) {
  */
 class MSP_State {
 
-    const OPEN_ISSUES_OPTION = 'sp_open_issues';
-    const FIXED_LOG_OPTION   = 'sp_fixed_log';
+    const OPEN_ISSUES_OPTION = 'msp_open_issues';
+    const FIXED_LOG_OPTION   = 'msp_fixed_log';
 
     /**
      * Overwrites one category's findings with the results of the latest scan.
