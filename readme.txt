@@ -57,11 +57,15 @@ No. Every scan module targets your own site's `home_url()` or local files only. 
 = 1.1.0 =
 * Security: All custom SQL queries now use `$wpdb->prepare()` with the `%i` identifier placeholder.
 * Security: Settings form input is unslashed before sanitization; added an explicit capability check alongside the existing nonce check.
+* Security: Replaced `is_writable()` with `wp_is_writable()`, per Plugin Check.
 * Update: Replaced `json_encode()` calls with `wp_json_encode()` throughout.
-* Update: Added `Requires at least`, `Requires PHP`, `License`, and `License URI` headers; corrected the `Text Domain` to match the plugin's folder slug.
+* Update: Added `Requires at least`, `Requires PHP`, `License`, and `License URI` headers; corrected the `Text Domain` to match the plugin's folder slug; removed the `Domain Path` header, which pointed at a non-existent folder.
 * Update: Confirmed compatibility with WordPress 7.0.
+* Update: Unified every option name, `$_POST` field, CSS class, and JS selector onto a single `msp` prefix (previously a mix of `MSP_`, `my_security_pro_`, and a generic `sp_`/`sp-`).
+* Update: Added full internationalization support — every admin-facing string and scan/AJAX message is now translatable via the `my-security-scanner-pro` text domain.
 * Fix: Loose (`==`) comparisons replaced with strict (`===`) comparisons.
 * Fix: Removed unreachable `die()` call after `wp_send_json()`, which already terminates the request.
+* Fix: Dashboard's plugin-version stat no longer shows a hardcoded, stale version number.
 
 = 1.0.0 =
 * Initial release.
