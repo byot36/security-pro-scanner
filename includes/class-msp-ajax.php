@@ -10,10 +10,32 @@ if (!defined('ABSPATH')) {
  */
 class MSP_Ajax {
 
+    /**
+     * Name of the custom table that stores raw scan history.
+     *
+     * @var string
+     */
     private string $db_table_name;
+
+    /**
+     * Detection logic used to run each scan module.
+     *
+     * @var MSP_Scanner
+     */
     private MSP_Scanner $scanner;
+
+    /**
+     * Shared state tracker for open issues and confirmed fixes.
+     *
+     * @var MSP_State
+     */
     private MSP_State $state;
 
+    /**
+     * @param string      $db_table_name Name of the custom table that stores scan history.
+     * @param MSP_Scanner $scanner       Detection logic used to run each scan module.
+     * @param MSP_State   $state         Shared state tracker for open issues and fixes.
+     */
     public function __construct(string $db_table_name, MSP_Scanner $scanner, MSP_State $state) {
         $this->db_table_name = $db_table_name;
         $this->scanner = $scanner;
@@ -25,6 +47,8 @@ class MSP_Ajax {
 
     /**
      * AJAX HANDLER: applies the automatic fix for missing HTTP headers
+     *
+     * @return void
      */
     public function handle_fix_headers() {
         check_ajax_referer('my_security_pro_fix_headers', 'nonce');
@@ -48,6 +72,8 @@ class MSP_Ajax {
 
     /**
      * SCAN LOGIC (AJAX HANDLER)
+     *
+     * @return void
      */
     public function handle_scan() {
         check_ajax_referer('my_security_pro_scan', 'nonce');
@@ -56,12 +82,12 @@ class MSP_Ajax {
             wp_send_json_error('Insufficient permissions.', 403);
         }
 
-        $scan_type = isset($_POST['scan_type']) ? sanitize_key($_POST['scan_type']) : 'full';
+        $scan_type = isset($_POST['scan_type']) ? sanitize_key(wp_unslash($_POST['scan_type'])) : 'full';
         $results = array();
         global $wpdb;
 
         // 1. BACKDOORS DETECTION (Simple regex on critical files and plugins)
-        if ($scan_type == 'full' || $scan_type == 'backdoors') {
+        if ($scan_type === 'full' || $scan_type === 'backdoors') {
             $backdoor_items = array();
 
             // Scan wp-config.php and index.php as critical examples
@@ -80,6 +106,9 @@ class MSP_Ajax {
             foreach ($files_to_check as $file_path) {
                 if (is_readable($file_path)) {
                     $content = file_get_contents($file_path);
+                    if ($content === false) {
+                        continue;
+                    }
 
                     // Look for common malware functions
                     $patterns = array('/eval\s*\(/', '/base64_decode\s*\(/', '/assert\s*\(/');
@@ -92,7 +121,7 @@ class MSP_Ajax {
                                 'scan_type' => 'backdoor',
                                 'result_level' => 'WARNING',
                                 'message' => "Suspicious code in $rel_path",
-                                'details' => json_encode(array('file' => $rel_path))
+                                'details' => wp_json_encode(array('file' => $rel_path))
                             ));
                             break; // A single alert per file
                         }
@@ -105,7 +134,7 @@ class MSP_Ajax {
         }
 
         // 2. CRITICAL FILE PERMISSIONS
-        if ($scan_type == 'full' || $scan_type == 'perms') {
+        if ($scan_type === 'full' || $scan_type === 'perms') {
             $perms_items = array();
             $critical_files = array('wp-config.php', '.htaccess');
             foreach ($critical_files as $file) {
@@ -113,13 +142,13 @@ class MSP_Ajax {
                 if (file_exists($path)) {
                     $perms = substr(sprintf('%o', fileperms($path)), -4);
                     // 0644 is standard, 0755 is acceptable for htaccess but not for config
-                    if ($file == 'wp-config.php' && octdec($perms) > 0644) {
+                    if ($file === 'wp-config.php' && octdec($perms) > 0644) {
                         $perms_items[] = array('level' => 'CRITICAL', 'msg' => "Risky permissions: wp-config.php ($perms)", 'key' => 'perms_wpconfig');
                         $wpdb->insert($this->db_table_name, array(
                             'scan_type' => 'perms',
                             'result_level' => 'CRITICAL',
                             'message' => "Bad permissions for wp-config.php",
-                            'details' => json_encode(array('perms' => $perms))
+                            'details' => wp_json_encode(array('perms' => $perms))
                         ));
                     }
                 }
@@ -129,7 +158,7 @@ class MSP_Ajax {
         }
 
         // 3. REST API ENUMERATION (Simple)
-        if ($scan_type == 'full') {
+        if ($scan_type === 'full') {
             $api_items = array();
             $response = wp_remote_get(home_url('/wp-json/wp/v2/users'));
             if (!is_wp_error($response)) {
@@ -143,7 +172,7 @@ class MSP_Ajax {
         }
 
         // 4. HTTP SECURITY HEADERS
-        if ($scan_type == 'full' || $scan_type == 'headers') {
+        if ($scan_type === 'full' || $scan_type === 'headers') {
             $header_items = array();
             foreach ($this->scanner->check_security_headers() as $item) {
                 $item['key'] = 'header_' . $item['header_key'];
@@ -160,7 +189,7 @@ class MSP_Ajax {
         }
 
         // 5. EXPOSED PORTS ON YOUR OWN SERVER
-        if ($scan_type == 'full' || $scan_type == 'ports') {
+        if ($scan_type === 'full' || $scan_type === 'ports') {
             $port_items = array();
             foreach ($this->scanner->check_exposed_ports() as $item) {
                 $item['key'] = 'port_' . md5($item['msg']);
@@ -177,7 +206,7 @@ class MSP_Ajax {
         }
 
         // 6. SQL INJECTION RISK — static code analysis, not a live attack
-        if ($scan_type == 'full' || $scan_type == 'sqli') {
+        if ($scan_type === 'full' || $scan_type === 'sqli') {
             $sqli_items = array();
             foreach ($this->scanner->check_unsafe_sql_queries() as $item) {
                 $item['key'] = 'sqli_' . md5($item['msg']);
@@ -195,7 +224,7 @@ class MSP_Ajax {
 
         // 7. DYNAMIC SQLi + REFLECTED XSS — on your own site only, "full" does not
         // include it by default because it's slower (more HTTP requests); run it explicitly.
-        if ($scan_type == 'advanced') {
+        if ($scan_type === 'advanced') {
             $dynamic_items = array();
             foreach ($this->scanner->check_dynamic_injection() as $item) {
                 $item['key'] = 'dynamic_' . md5($item['msg']);
@@ -212,7 +241,7 @@ class MSP_Ajax {
         }
 
         // If nothing was found in this specific scan, log a general OK if it's a full scan
-        if ($scan_type == 'full' && empty($results)) {
+        if ($scan_type === 'full' && empty($results)) {
             $wpdb->insert($this->db_table_name, array(
                 'scan_type' => 'full',
                 'result_level' => 'OK',
@@ -225,7 +254,5 @@ class MSP_Ajax {
             'scan_type' => $scan_type,
             'results' => $results
         ));
-
-        die(); // Stops AJAX execution
     }
 }

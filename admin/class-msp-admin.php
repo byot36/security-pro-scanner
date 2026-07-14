@@ -9,10 +9,31 @@ if (!defined('ABSPATH')) {
  */
 class MSP_Admin {
 
+    /**
+     * Name of the custom table that stores raw scan history.
+     *
+     * @var string
+     */
     private string $db_table_name;
+
+    /**
+     * Tracks current open issues and confirmed fixes.
+     *
+     * @var MSP_State
+     */
     private MSP_State $state;
+
+    /**
+     * Hook suffixes of this plugin's admin pages, used to scope asset loading.
+     *
+     * @var array
+     */
     private array $plugin_pages = array();
 
+    /**
+     * @param string    $db_table_name Name of the custom table that stores scan history.
+     * @param MSP_State $state         Shared state tracker for open issues and fixes.
+     */
     public function __construct(string $db_table_name, MSP_State $state) {
         $this->db_table_name = $db_table_name;
         $this->state = $state;
@@ -23,6 +44,8 @@ class MSP_Admin {
 
     /**
      * MENU: Adds the option in the WordPress sidebar
+     *
+     * @return void
      */
     public function add_admin_menu() {
         $dashboard_hook = add_menu_page(
@@ -76,8 +99,11 @@ class MSP_Admin {
 
     /**
      * Loads CSS/JS only on this plugin's pages, not across the whole admin area.
+     *
+     * @param string $hook_suffix The current admin page hook, supplied by WordPress.
+     * @return void
      */
-    public function enqueue_admin_assets($hook_suffix) {
+    public function enqueue_admin_assets(string $hook_suffix) {
         if (empty($this->plugin_pages) || !in_array($hook_suffix, $this->plugin_pages, true)) {
             return;
         }
@@ -106,8 +132,11 @@ class MSP_Admin {
 
     /**
      * SHARED NAVIGATION: consistent tabs across all plugin pages
+     *
+     * @param string $active Slug of the currently active admin page.
+     * @return void
      */
-    private function render_nav_tabs($active) {
+    private function render_nav_tabs(string $active) {
         $tabs = array(
             'my-security-pro'          => 'Dashboard',
             'my-manual-scan'           => 'Manual Scan',
@@ -129,6 +158,8 @@ class MSP_Admin {
 
     /**
      * MAIN PAGE (DASHBOARD)
+     *
+     * @return void
      */
     public function render_dashboard() {
         global $wpdb;
@@ -141,7 +172,7 @@ class MSP_Admin {
         // state shown below, not from the raw historical log table -- otherwise a
         // category re-scanned multiple times counts the same still-open issue
         // more than once, and the stat card disagrees with the table underneath it.
-        $total_scans    = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->db_table_name}");
+        $total_scans    = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $this->db_table_name));
         $critical_count = count( array_filter( $open_issues, function ( $issue ) { return 'CRITICAL' === $issue['level']; } ) );
         $warning_count  = count( array_filter( $open_issues, function ( $issue ) { return 'WARNING' === $issue['level']; } ) );
 
@@ -242,6 +273,8 @@ class MSP_Admin {
 
     /**
      * MANUAL SCAN PAGE (AJAX)
+     *
+     * @return void
      */
     public function render_manual_scan() {
         ?>
@@ -283,10 +316,12 @@ class MSP_Admin {
 
     /**
      * LOGS PAGE (HISTORY)
+     *
+     * @return void
      */
     public function render_logs() {
         global $wpdb;
-        $logs = $wpdb->get_results("SELECT * FROM {$this->db_table_name} ORDER BY timestamp DESC LIMIT 50");
+        $logs = $wpdb->get_results($wpdb->prepare('SELECT * FROM %i ORDER BY timestamp DESC LIMIT 50', $this->db_table_name));
 
         ?>
         <div class="security-pro-wrap">
@@ -324,11 +359,13 @@ class MSP_Admin {
 
     /**
      * SETTINGS PAGE
+     *
+     * @return void
      */
     public function render_settings() {
-        if (isset($_POST['sp_save_settings']) && check_admin_referer('my_security_pro_settings')) {
+        if (isset($_POST['sp_save_settings']) && check_admin_referer('my_security_pro_settings') && current_user_can('manage_options')) {
             update_option('my_security_pro_settings', array(
-                'notify_email' => sanitize_email($_POST['sp_notify_email'] ?? ''),
+                'notify_email' => sanitize_email(wp_unslash($_POST['sp_notify_email'] ?? '')),
                 'notify_on'    => !empty($_POST['sp_notify_on']),
             ));
             echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';

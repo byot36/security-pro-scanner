@@ -11,9 +11,23 @@ if (!defined('ABSPATH')) {
  */
 class MSP_Scanner {
 
+    /**
+     * Timeout, in seconds, for the self-test HTTP requests used by check_dynamic_injection().
+     *
+     * @var int
+     */
     private $http_test_timeout = 6;
+
+    /**
+     * Shared state tracker for open issues and confirmed fixes.
+     *
+     * @var MSP_State
+     */
     private MSP_State $state;
 
+    /**
+     * @param MSP_State $state Shared state tracker for open issues and fixes.
+     */
     public function __construct(MSP_State $state) {
         $this->state = $state;
     }
@@ -21,6 +35,8 @@ class MSP_Scanner {
     /**
      * Header definitions: the real HTTP name + recommended value, used
      * both for detection and for generating the automatic fix in .htaccess.
+     *
+     * @return array
      */
     public function header_definitions(): array {
         return array(
@@ -60,6 +76,8 @@ class MSP_Scanner {
 
     /**
      * MODULE: Missing HTTP security headers (checks your own site, via wp_remote_get)
+     *
+     * @return array
      */
     public function check_security_headers(): array {
         $findings = array();
@@ -92,6 +110,8 @@ class MSP_Scanner {
      * using insert_with_markers() — the native WordPress function that
      * adds/updates a delimited block without touching the rest of the
      * rules in the file (e.g. permalink rules).
+     *
+     * @return array
      */
     public function apply_header_fixes(): array {
         if (!current_user_can('manage_options')) {
@@ -185,6 +205,8 @@ class MSP_Scanner {
 
     /**
      * MODULE: Checks for exposed ports on your own server (informational, no attack)
+     *
+     * @return array
      */
     public function check_exposed_ports(): array {
         $findings = array();
@@ -220,6 +242,8 @@ class MSP_Scanner {
      * Looks for $wpdb queries that directly concatenate request input,
      * without $wpdb->prepare(). Sends no request to the site — only
      * reads the locally installed PHP files.
+     *
+     * @return array
      */
     public function check_unsafe_sql_queries(): array {
         $findings = array();
@@ -278,6 +302,9 @@ class MSP_Scanner {
     /**
      * ADVANCED MODULE: HTTP request with proper headers/body separation,
      * used for the tests below (self-scan only).
+     *
+     * @param string $url_with_query Fully-formed URL, including query args, to request.
+     * @return array
      */
     private function fetch_self(string $url_with_query): array {
         $start = microtime(true);
@@ -307,6 +334,8 @@ class MSP_Scanner {
      * Why it does not accept an external target: this file runs inside a
      * WordPress plugin; if it accepted an arbitrary URL, it would become a
      * public scanner anyone could use against anyone via your server.
+     *
+     * @return array
      */
     public function check_dynamic_injection(): array {
         $findings = array();
